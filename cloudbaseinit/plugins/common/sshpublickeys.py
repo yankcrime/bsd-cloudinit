@@ -14,16 +14,16 @@
 
 import os
 
-from oslo.config import cfg
+from oslo_log import log as oslo_logging
 
+from cloudbaseinit import conf as cloudbaseinit_conf
 from cloudbaseinit import exception
-from cloudbaseinit.openstack.common import log as logging
 from cloudbaseinit.osutils import factory as osutils_factory
 from cloudbaseinit.plugins.common import base
 
-CONF = cfg.CONF
-CONF.import_opt('username', 'cloudbaseinit.plugins.common.createuser')
-LOG = logging.getLogger(__name__)
+
+CONF = cloudbaseinit_conf.CONF
+LOG = oslo_logging.getLogger(__name__)
 
 
 class SetUserSSHPublicKeysPlugin(base.BasePlugin):
@@ -32,9 +32,9 @@ class SetUserSSHPublicKeysPlugin(base.BasePlugin):
         public_keys = service.get_public_keys()
         if not public_keys:
             LOG.debug('Public keys not found in metadata')
-            return (base.PLUGIN_EXECUTION_DONE, False)
+            return base.PLUGIN_EXECUTION_DONE, False
 
-        username = CONF.username
+        username = service.get_admin_username() or CONF.username
 
         osutils = osutils_factory.get_os_utils()
         user_home = osutils.get_user_home(username)
@@ -52,6 +52,7 @@ class SetUserSSHPublicKeysPlugin(base.BasePlugin):
         LOG.info("Writing SSH public keys in: %s" % authorized_keys_path)
         with open(authorized_keys_path, 'w') as f:
             for public_key in public_keys:
-                f.write(public_key)
+                # All public keys are space-stripped.
+                f.write(public_key + "\n")
 
-        return (base.PLUGIN_EXECUTION_DONE, False)
+        return base.PLUGIN_EXECUTION_DONE, False

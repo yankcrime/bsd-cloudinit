@@ -33,7 +33,7 @@ class FreeBSDUtils(base.BaseOSUtils):
             grouplist += i+','
         grouplist = grouplist[:-1]
 
-        pw_cmd = "echo " + password + " | pw useradd -n " + username + " -c '" + user_comment + "' -d '" + home_dir + "' -s /bin/tcsh -h 0 -G " + grouplist
+        pw_cmd = "echo " + password + " | pw useradd -n " + username + " -c '" + user_comment + "' -d '" + home_dir + "' -s" + user_shell + "-h 0 -G " + grouplist
         subprocess.check_call(pw_cmd, shell=True)
         subprocess.check_call("mkdir -p %s" % (home_dir), shell=True)
         self.chown(username, username, home_dir)
@@ -55,7 +55,7 @@ class FreeBSDUtils(base.BaseOSUtils):
 
     def get_user_home(self, username):
         home_dir = subprocess.check_output('printf ~' + username, shell=True)
-        return home_dir
+        return str(home_dir)
 
     def get_network_adapters(self):
         """
@@ -85,7 +85,7 @@ class FreeBSDUtils(base.BaseOSUtils):
 
         subprocess.check_call(if_cmd, shell=True)
         subprocess.check_call(route_cmd, shell=True)
-        self._add_comment(resolv_conf_file);
+        self._add_comment(resolv_conf_file)
         for line in resolv_conf:
             resolv_conf_file.write(line + '\n')
         self._add_rc_conf({'ifconfig_' + adapter_name: 'inet ' + address + ' netmask ' + netmask + ' broadcast ' + broadcast,
@@ -100,7 +100,7 @@ class FreeBSDUtils(base.BaseOSUtils):
         if_list = self.get_network_adapters()
         assert adapter_name in if_list, 'Network interface: ' + adapter_name + ' not found.'
 
-        _add_rc_conf({'ifconfig_' + adapter_name: 'DHCP'})
+        self._add_rc_conf({'ifconfig_' + adapter_name: 'DHCP'})
         subprocess.check_call(['dhclient', adapter_name])
 
     def set_config_value(self, name, value, section=None):
